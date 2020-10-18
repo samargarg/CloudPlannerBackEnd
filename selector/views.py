@@ -88,7 +88,7 @@ class ListFiles(APIView):
     def post(self, request):
         user = Token.objects.get(key=request.auth.key).user
         tokens = models.UserAuth.objects.get(user=user)
-        tokens.access_token = refreshToken(tokens.refresh_token)
+        tokens.access_token = access_token(tokens.refresh_token)
         tokens.save()
         credentials = google.oauth2.credentials.Credentials(tokens.access_token)
         DRIVE = discovery.build('drive', 'v3', credentials=credentials)
