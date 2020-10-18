@@ -154,21 +154,34 @@ class UpdateFolder(APIView):
 
     def post(self, request):
         drive = authenticate(request)
-        files = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
-        default_app_folder_id = None
-        for file in files:
-            if file['title'] is "CloudPlanner":
-                default_app_folder_id = file['id']
-        if default_app_folder_id is None:
-            default_app_folder = drive.CreateFile({'title': 'CloudPlanner',
-                                                   'mimeType': "application/vnd.google-apps.folder"})
-            default_app_folder.Upload()
-            default_app_folder_id = default_app_folder['id']
+        cloud_planner = drive.ListFile({'q': f"title = 'CloudPlanner' and trashed=false"}).GetList()[0]
+        if cloud_planner is None:
+            cloud_planner = drive.CreateFile({'title': 'CloudPlanner',
+                                              'mimeType': "application/vnd.google-apps.folder"})
+            cloud_planner.Upload()
+
+        cloud_planner_id = cloud_planner['id']
+
+        # files = drive.ListFile({'q': "'root' in parents and trashed=false"}).GetList()
+        # default_app_folder_id = None
+        # for file in files:
+        #     if str(file['title']) == "CloudPlanner":
+        #         default_app_folder_id = file['id']
+        #         break
+        # if default_app_folder_id is None:
+        #     default_app_folder = drive.CreateFile({'title': 'CloudPlanner',
+        #                                            'mimeType': "application/vnd.google-apps.folder"})
+        #     default_app_folder.Upload()
+        #     default_app_folder_id = default_app_folder['id']
 
         path = request.data.get('path')
+        new_folder_name = str(path.split('/')[-1])
 
-        new_folder = drive.CreateFile({'title': path.split('/')[-1],
-                                       'parents': [{'kind': "drive#fileLink", 'id': default_app_folder_id}],
+        folder = drive.ListFile({'q': f"title='{new_folder_name}' and trashed=false"}).GetList()[0]
+        folder.Trash()
+
+        new_folder = drive.CreateFile({'title': new_folder_name,
+                                       'parents': [{'kind': "drive#fileLink", 'id': cloud_planner_id}],
                                        'mimeType': "application/vnd.google-apps.folder"})
         new_folder.Upload()
 
