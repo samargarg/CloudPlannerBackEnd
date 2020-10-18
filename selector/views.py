@@ -9,7 +9,7 @@ from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 
 import requests
-
+from . import models
 from django.http import HttpResponse, JsonResponse
 from django.contrib.auth.models import User
 
