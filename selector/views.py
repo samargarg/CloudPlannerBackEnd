@@ -20,8 +20,10 @@ from oauth2client import file, client, tools
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 
+from pydrive.auth import GoogleAuth
 
-def refreshToken(refresh_token):
+
+def access_token(refresh_token):
     client_id = "1046798208571-l1qrn714dgs9gfk7786frl1v3ak8hreh.apps.googleusercontent.com"
     client_secret = "WvlS-OdA9mnl9cB0c9sfwlYv"
     params = {
@@ -31,22 +33,22 @@ def refreshToken(refresh_token):
         "refresh_token": refresh_token
     }
 
-    authorization_url = "https://www.googleapis.com/oauth2/v4/token"
+    authorization_url = "https://oauth2.googleapis.com/token"
 
     r = requests.post(authorization_url, data=params)
 
     if r.ok:
+        print(r.json()['access_token'])
         return r.json()['access_token']
     else:
+        print("None!")
         return None
 
 
 class GoogleCreateUser(APIView):
-    authentication_classes = [TokenAuthentication]
-    permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        payload = {'access_token': request.data.get("access_token")}
+        payload = {'access_token': access_token(request.data.get("refresh_token"))}
         r = requests.get('https://www.googleapis.com/oauth2/v2/userinfo', params=payload)
         data = json.loads(r.text)
 
@@ -60,7 +62,7 @@ class GoogleCreateUser(APIView):
             new_user = False
         except User.DoesNotExist:
             new_user = True
-            user = User.objects.create_user(data['given_name'], data['email'])
+            user = User.objects.create_user(data['email'], data['email'])
             user.first_name = data['given_name']
             user.last_name = data['family_name']
             user.save()
@@ -96,9 +98,14 @@ class ListFiles(APIView):
         for f in files:
             file_list.append({"name": f['name'], "type": f['mimeType']})
 
-        return JsonResponse(file_list, status=status.HTTP_200_OK, safe=False)
+        return Response(file_list, status=status.HTTP_200_OK, safe=False)
 
 
+class Authenticate(APIView):
+    def get(self, request):
+        gauth = GoogleAuth()
+        gauth.LocalWebserverAuth()
+        return Response({"authenticated": True}, status=status.HTTP_200_OK)
 
 
 
